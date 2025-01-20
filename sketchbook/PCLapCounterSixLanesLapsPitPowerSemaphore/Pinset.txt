@@ -1,0 +1,9 @@
+Semaphore
+ - Red lights: 5,6,7,8,9
+ - Green/go leds: 10
+
+Lane detectors:
+ - 2,3,18,19,20,21
+
+Relays contro: 
+ - 29, 30, 31, 32, 33, 34
