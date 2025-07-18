@@ -19,6 +19,7 @@
 
    Revision History
    __________ ____________________ _______________________________________________________
+   2025-07-18 JMS                  Six lane pit detection and power control only - no lap counting, no external buttons, no lights
    2019-09-28 Gabrile Inäbnit      Six lanes version
    2019-05-15 Gabriel Inäbnit      PCLC 5.43 - two Arduino modules mode: lap counting only
    2017-05-20 Gabriel Inäbnit      Slimming down functionality and reduce to four lanes
@@ -52,6 +53,7 @@ const long serialSpeed = 19200;                  // 19200;
 const unsigned long laneProtectionTime = 3000L;  // 3 seconds protection time
 
 #define PITENTRYTIME (500)
+#define DETECTIONPOLLING (150)  // 150 ms
 
 const byte laneToInterrupMapping[] = { 2, 3, 20, 21, 18, 19 };
 const byte laneToRelayMapping[] = { 10, 11, 12, 13, 14, 15 };
@@ -111,29 +113,35 @@ protected:
   volatile bool detectionStart;
   volatile unsigned long detectionStartTime;
   volatile unsigned long detectionTime;
-  volatile unsigned long laptime;
+  //volatile unsigned long laptime;
 public:
   Lane(byte setLane) {
-    start = 0L;
-    finish = 0L;
-    count = -1L;
+    //start = 0L;
+    //finish = 0L;
     lane = setLane - 1;
     pin = laneToRelayMapping[lane];
-    reported = true;
+    //reported = true;
     reportedPitEntry = true;
     reportedPitExit = true;
-    falseStart = false;
+    //falseStart = false;
     detectionStart = false;
   }
 
   void startDetection() {
-    now = millis();  // millis();
-    if ((now - finish) < laneProtectionTime) {
-      return;
-    } else if (!detectionStart) {
-      detectionStartTime = now;
-      detectionStart = true;
+    detectionStartTime = millis();
+    if (false == isInPit) {
+      if (!detectionStart) {
+        detectionStart = true;
+      }
     }
+  }
+
+  void stopDetection() {
+    if (true == isInPit) {
+      reportedPitExit = false;
+    }
+    isInPit = false;
+    detectionStart = false;
   }
 
   void checkLapOrPit() {
@@ -141,36 +149,21 @@ public:
       now = millis();
       //Serial.print("now: " + String(now) + "detectionStart: " + String(detectionStartTime)+ "\n");
       detectionTime = (now - detectionStartTime);
-      //if (detectionTime < DETECTIONPOLLING)
-      //{
-      //  return;
-      //}
-
-      if (LOW == laneDetect) {  // Ya salío
-        //Serial.print("salio\n");
-        if (false == isInPit) {
-          laptime = detectionStartTime;
-          //lapDetected();
-          //Serial.print("noraml\n");
-        } else {
-          reportedPitExit = false;
-          /* Se reporta la vuelta con el tiempo de salida */
-          laptime = millis();
-          lapDetected();
-          isInPit = false;
-          //Serial.print("de boxes\n");
-        }
+      if (detectionTime < DETECTIONPOLLING) {
+        return;
+      }
+      if (true == isInPit) {
+        //Serial.print("sigeu dentro\n");
+      } else if (detectionTime > PITENTRYTIME) {  // Ya ha pasado el tiempo de detección de entrada
+                                                  /*Serial.print("St: ");
+      Serial.println(detectionStartTime);
+      Serial.print(">now: ");
+      Serial.println(now);
+      Serial.print(">Dt: ");
+      Serial.println(detectionTime);*/
+        reportedPitEntry = false;
+        isInPit = true;
         detectionStart = false;
-      } else {  //sigue dentro
-        //Serial.print("Dentro\n");
-        if (detectionTime > PITENTRYTIME) {  // entra en boxes
-                                             //Serial.print("ccc");
-          if (false == isInPit) {
-            //Serial.print("bbb");
-            reportedPitEntry = false;
-            isInPit = true;
-          }
-        }
       }
     }
   }
@@ -208,7 +201,7 @@ public:
     // Serial.println(']');
   }
 
- /* void reportLap() {
+  /* void reportLap() {
     //if (!reported) {
     //  Serial.print(lapTime[lane]);
     //  Serial.print(finish - start);
@@ -261,7 +254,7 @@ Lane lane6(6);
 /*****************************************************************************************
    enable interrupts
  *****************************************************************************************/
-#define ISRDETECTIONSIDE (RISING)  //(FALLING)
+#define ISRDETECTIONSIDE (CHANGE)  //(RISING)  //(FALLING)
 
 void attachAllInterrupts() {
   attachInterrupt(digitalPinToInterrupt(LANE_1), lapDetected1, ISRDETECTIONSIDE);
@@ -305,6 +298,8 @@ void setup() {
   jiggleRelays();
   delay(333);
   setPowerOn();  // switch all power relays on
+
+  lapDetected1();
 }
 
 /*****************************************************************************************
@@ -406,32 +401,56 @@ void setPowerOff() {
  *****************************************************************************************/
 void lapDetected1() {
   if (HIGH == digitalRead(LANE_1)) {
+    //Serial.println("1H");
     lane1.startDetection();
+  } else {
+    //Serial.println("1L");
+    lane1.stopDetection();
   }
 }
 void lapDetected2() {
   if (HIGH == digitalRead(LANE_2)) {
+    //Serial.println("2H");
     lane2.startDetection();
+  } else {
+    //Serial.println("2L");
+    lane2.stopDetection();
   }
 }
 void lapDetected3() {
   if (HIGH == digitalRead(LANE_3)) {
+    //Serial.println("3H");
     lane3.startDetection();
+  } else {
+    //Serial.println("3L");
+    lane3.stopDetection();
   }
 }
 void lapDetected4() {
   if (HIGH == digitalRead(LANE_4)) {
+    //Serial.println("4H");
     lane4.startDetection();
+  } else {
+    //Serial.println("4L");
+    lane4.stopDetection();
   }
 }
 void lapDetected5() {
   if (HIGH == digitalRead(LANE_5)) {
+    //Serial.println("5H");
     lane5.startDetection();
+  } else {
+    //Serial.println("5L");
+    lane5.stopDetection();
   }
 }
 void lapDetected6() {
   if (HIGH == digitalRead(LANE_6)) {
+    //Serial.println("6H");
     lane6.startDetection();
+  } else {
+    //Serial.println("6L");
+    lane6.stopDetection();
   }
 }
 
@@ -449,10 +468,10 @@ void loop() {
       if (output == PWR_OFF) {
         //ledPowerAll.off();
         //if (race.isFinished()) {
-          setPowerOff();
+        setPowerOff();
         //}
         //if (race.isPaused()) {
-          //ledCaution.on();
+        //ledCaution.on();
         //}
       } else if (output == PWR_1_ON) {
         lane1.powerOn();
@@ -470,6 +489,14 @@ void loop() {
         lane4.powerOn();
       } else if (output == PWR_4_OFF) {
         lane4.powerOff();
+      } else if (output == PWR_5_ON) {
+        lane5.powerOn();
+      } else if (output == PWR_5_OFF) {
+        lane5.powerOff();
+      } else if (output == PWR_6_ON) {
+        lane6.powerOn();
+      } else if (output == PWR_6_OFF) {
+        lane6.powerOff();
       }
     }
   }
