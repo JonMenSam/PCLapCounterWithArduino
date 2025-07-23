@@ -298,8 +298,6 @@ void setup() {
   jiggleRelays();
   delay(333);
   setPowerOn();  // switch all power relays on
-
-  lapDetected1();
 }
 
 /*****************************************************************************************
@@ -348,10 +346,10 @@ public:
     pin = laneToRelayMapping[lane - 1];
     pinMode(pin, OUTPUT);
   }
-  void on() {
+  void off() {
     digitalWrite(pin, HIGH);
   }
-  void off() {
+  void on() {
     digitalWrite(pin, LOW);
   }
 };
@@ -473,6 +471,8 @@ void loop() {
         //if (race.isPaused()) {
         //ledCaution.on();
         //}
+      } else if(output == PWR_ON) {
+        setPowerOn();
       } else if (output == PWR_1_ON) {
         lane1.powerOn();
       } else if (output == PWR_1_OFF) {
@@ -500,6 +500,7 @@ void loop() {
       }
     }
   }
+
   lane1.checkLapOrPit();
   lane2.checkLapOrPit();
   lane3.checkLapOrPit();
