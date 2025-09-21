@@ -225,14 +225,13 @@ public:
     }
   }*/
 
-  void
-  powerOn() {
+  void powerOn() {
     if (!falseStart) {
-      digitalWrite(pin, HIGH);
+      digitalWrite(pin, LOW);
     }
   }
   void powerOff() {
-    digitalWrite(pin, LOW);
+    digitalWrite(pin, HIGH);
   }
 
   bool isFalseStart() {
